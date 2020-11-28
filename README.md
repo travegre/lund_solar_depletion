@@ -1,7 +1,7 @@
 # lund_solar_depletion
-== INSTALL ==
+# INSTALL
 
-virtualenv -p python3 virtualenv
-source virtualenv/bin/activate
-pip install -r requirements.txt 
+* virtualenv -p python3 virtualenv
+* source virtualenv/bin/activate
+* pip install -r requirements.txt 
 
