@@ -8,8 +8,8 @@ def test():
     global g_priors, g_prior_keys, g_selected_abundances
     global data, g_tc
 
-    work.data = Table.read('GALAH_DR3_SpOMgSiCaYBa.fits')[:100]
-    work.data.write('test_data.fits')
+    work.data = Table.read('test_data.fits')
+
     tc_values = Table.read('Tc_values.txt', format='ascii')
     # create dictionary abundance->Tc for likelihood function
     work.g_tc = dict(zip(tc_values['El'], tc_values['Tc']))
