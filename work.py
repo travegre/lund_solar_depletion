@@ -11,6 +11,9 @@ import traceback
 
 import emcee
 
+import astropy
+from astropy.table import Table, join, hstack, Column, vstack
+
 
 
 #https://arxiv.org/pdf/1510.07674.pdf, IAU 2015 Resolution B3 on Recommended Nominal Conversion Constants for Selected Solar and Planetary Properties
@@ -44,6 +47,13 @@ def main():
 def mcmc_fit(run_id, niter, nwalkers, state=False):
 
     global g_priors
+    global data
+
+    data = Table.read('GALAH_DR3_SpOMgSiCaYBa.fits')
+
+    print(data.colnames)
+
+    fdsfsd
 
     # SET PRIORS
     # ==========
@@ -92,10 +102,10 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
                                     " ".join(['%.5f' % i for i in position[k]]), # adjpars
                                     log_prob[k] # lnprob value
                                 )
-            )
-      
+            )      
      
     f.close()
+    
   
     print("time elapsed: %s" % str((time.time()-start)/3600.))
 
