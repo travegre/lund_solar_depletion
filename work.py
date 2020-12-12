@@ -35,12 +35,12 @@ KPCTOM = 3.085677581*(10**19)
 
 
 def main():
-    run_id = 'test4'
+    run_id = 'test5'
     
     if not os.path.exists(run_id): 
         os.makedirs(run_id)
 
-    mcmc_fit(run_id, 1000, 64)
+    mcmc_fit(run_id, 1500, 128)
 
 
 def mcmc_fit(run_id, niter, nwalkers, state=False):
@@ -49,7 +49,7 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
     global data, g_tc
 
     # Load data and abundance list with condensation temperatures
-    data = Table.read('GALAH_DR3_SpOMgSiCaYBa_solar.fits')[:5000]
+    data = Table.read('GALAH_DR3_SpOMgSiCaYBa_solar.fits')[:3000]
 
     tc_values = Table.read('Tc_values.txt', format='ascii')
     # create dictionary abundance->Tc for likelihood function
@@ -141,7 +141,7 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
 
 
 
-    pool = Pool(32) # dedicate 32 cpu threads to the pool, this should be roughly 2-4x what is available on a machine
+    pool = Pool(64) # dedicate 32 cpu threads to the pool, this should be roughly 2-4x what is available on a machine
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=[], pool=pool)
   
     print("start mcmc for run %s" % run_id)
@@ -214,7 +214,7 @@ def lnprob(x):
         
         L += np.log(pars['f']*Li_D + (1-pars['f'])*Li_ND)
 
-
+    print(L)
     print('likelihood took: ', time.time()-t0)
     
  
