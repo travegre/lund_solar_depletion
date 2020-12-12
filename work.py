@@ -35,12 +35,12 @@ KPCTOM = 3.085677581*(10**19)
 
 
 def main():
-    run_id = 'test3'
+    run_id = 'test4'
     
     if not os.path.exists(run_id): 
         os.makedirs(run_id)
 
-    mcmc_fit(run_id, 300, 64)
+    mcmc_fit(run_id, 1000, 64)
 
 
 def mcmc_fit(run_id, niter, nwalkers, state=False):
@@ -49,8 +49,8 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
     global data, g_tc
 
     # Load data and abundance list with condensation temperatures
-    data = Table.read('GALAH_DR3_SpOMgSiCaYBa.fits')[:1000]
-    
+    data = Table.read('GALAH_DR3_SpOMgSiCaYBa_solar.fits')[:5000]
+
     tc_values = Table.read('Tc_values.txt', format='ascii')
     # create dictionary abundance->Tc for likelihood function
     g_tc = dict(zip(tc_values['El'], tc_values['Tc']))
@@ -117,7 +117,7 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
 
 
     # select a subsample of abundances to fit
-    g_selected_abundances = ['O_fe', 'Mg_fe', 'Si_fe', 'Ca_fe', 'Y_fe', 'Ba_fe']
+    g_selected_abundances = ['Ni_fe', 'Mg_fe', 'Si_fe', 'Ca_fe', 'Al_fe']
     selected_abun = ['sig_'+x+'_D' for x in g_selected_abundances] + ['sig_'+x+'_ND' for x in g_selected_abundances]     
     g_prior_keys.extend(selected_abun) #prirs.keys()
 
