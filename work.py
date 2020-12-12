@@ -40,7 +40,7 @@ def main():
     if not os.path.exists(run_id): 
         os.makedirs(run_id)
 
-    mcmc_fit(run_id, 1500, 128)
+    mcmc_fit(run_id, 3000, 128)
 
 
 def mcmc_fit(run_id, niter, nwalkers, state=False):
@@ -49,7 +49,7 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
     global data, g_tc
 
     # Load data and abundance list with condensation temperatures
-    data = Table.read('GALAH_DR3_SpOMgSiCaYBa_solar.fits')[:3000]
+    data = Table.read('GALAH_DR3_SpOMgSiCaYBa_solar.fits')
 
     tc_values = Table.read('Tc_values.txt', format='ascii')
     # create dictionary abundance->Tc for likelihood function
@@ -120,6 +120,12 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
     g_selected_abundances = ['Ni_fe', 'Mg_fe', 'Si_fe', 'Ca_fe', 'Al_fe']
     selected_abun = ['sig_'+x+'_D' for x in g_selected_abundances] + ['sig_'+x+'_ND' for x in g_selected_abundances]     
     g_prior_keys.extend(selected_abun) #prirs.keys()
+
+    # Clean data of nan values for abundances
+    mask = data[g_selected_abundances[0]] > -9999
+    for i in g_selected_abundances:
+        mask = mask & (~np.isnan(data[i]))
+    data = data[mask][:3000]
 
 
     ndim = len(g_prior_keys)
