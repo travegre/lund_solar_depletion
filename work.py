@@ -43,13 +43,13 @@ def main():
     mcmc_fit(run_id, 300, 64)
 
 
-def mcmc_fit(run_id, niter, nwalkers, state=False):
+def mcmc_fit(run_id, niter, nwalkers, state=False, testing=False):
 
     global g_priors, g_prior_keys, g_selected_abundances
-    global data, g_tc
+    global data, g_tc, p0
 
     # Load data and abundance list with condensation temperatures
-    data = Table.read('GALAH_DR3_SpOMgSiCaYBa.fits')[:1000]
+    data = Table.read('test_data.fits')
     
     tc_values = Table.read('Tc_values.txt', format='ascii')
     # create dictionary abundance->Tc for likelihood function
@@ -113,7 +113,7 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
 
     # Add intrinsic scatter of abundances to priors
     for el in tc_values:
-        prirs.update({'sig_%s_D'%el['El']: (0,0.2), 'sig_%s_ND'%el['El']: (0,0.2)})
+        prirs.update({'sig_%s_D'%el['El']: (0,0.1), 'sig_%s_ND'%el['El']: (0,0.1)})
 
 
     # select a subsample of abundances to fit
@@ -138,45 +138,44 @@ def mcmc_fit(run_id, niter, nwalkers, state=False):
     else:   
         p0 = np.array([[p[0] + (p[1]-p[0])*np.random.rand() for p in g_priors] for i in range(nwalkers)])
 
+    if not testing:
 
-
-
-    pool = Pool(32) # dedicate 32 cpu threads to the pool, this should be roughly 2-4x what is available on a machine
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=[], pool=pool)
-  
-    print("start mcmc for run %s" % run_id)
-    
-    start = time.time()  
-  
-    
-    f = open('%s/chain.mcmc' % (run_id), "a")
-
-    f.write('Nwalker %s lnprob\n' % ' '.join(g_prior_keys))
-    
-    
-  
-    for result in sampler.sample(p0, iterations=niter, store=False):        
+        pool = Pool(32) # dedicate 32 cpu threads to the pool, this should be roughly 2-4x what is available on a machine
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=[], pool=pool)
+      
+        print("start mcmc for run %s" % run_id)
         
-        position, log_prob, random_state = result
-    
-        for k in range(position.shape[0]):
+        start = time.time()  
       
+        
+        f = open('%s/chain.mcmc' % (run_id), "a")
+
+        f.write('Nwalker %s lnprob\n' % ' '.join(g_prior_keys))
+        
+        
       
-            f.write("%d %s %f\n" % (k, # walker #
-                                    " ".join(['%.5f' % i for i in position[k]]), # adjpars
-                                    log_prob[k] # lnprob value
-                                )
-            )      
-     
-    f.close()
-    
-  
-    print("time elapsed: %s" % str((time.time()-start)/3600.))
+        for result in sampler.sample(p0, iterations=niter, store=False):        
+            
+            position, log_prob, random_state = result
+        
+            for k in range(position.shape[0]):
+          
+          
+                f.write("%d %s %f\n" % (k, # walker #
+                                        " ".join(['%.5f' % i for i in position[k]]), # adjpars
+                                        log_prob[k] # lnprob value
+                                    )
+                )      
+         
+        f.close()
+        
+      
+        print("time elapsed: %s" % str((time.time()-start)/3600.))
 
-    print("end mcmc for run %s" % run_id)
-    
+        print("end mcmc for run %s" % run_id)
+        
 
-    return True
+        return True
 
 
 def lnprob(x):  
