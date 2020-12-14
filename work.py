@@ -126,8 +126,7 @@ def mcmc_fit(run_id, niter, nwalkers, state=False, testing=False):
     print("Number of model parameters: ", ndim)
 
     # Initialise priors of selected model parameters
-    g_priors = [prirs[i] for i in g_prior_keys]
-
+    g_priors = np.array([prirs[i] for i in g_prior_keys])
 
 
     # SET p0, INITIAL WALKER POSITIONS
@@ -136,8 +135,9 @@ def mcmc_fit(run_id, niter, nwalkers, state=False, testing=False):
         p0 = np.genfromtxt(state, skip_header=1)[-nwalkers:, 1:ndim+1]      
         print("state file loaded p0")
     else:   
-        p0 = np.array([[p[0] + (p[1]-p[0])*np.random.rand() for p in g_priors] for i in range(nwalkers)])
+        p0 = np.array(g_priors[:,0] + (g_priors[:,1]-g_priors[:,0])*np.random.rand(nwalkers, g_priors.shape[0]))
 
+    # This if-statement is an ugly hack, but it will do the job for now
     if not testing:
 
         pool = Pool(32) # dedicate 32 cpu threads to the pool, this should be roughly 2-4x what is available on a machine
@@ -181,7 +181,7 @@ def mcmc_fit(run_id, niter, nwalkers, state=False, testing=False):
 def lnprob(x):  
     
     # effectively reject any walk into forbidden parameter space
-    if not np.all([g_priors[i][0] < x[i] < g_priors[i][1] for i in range(len(g_priors))]):    
+    if np.any(g_priors[:, 0] > x) or np.any(g_priors[:, 1] < x):
         return -np.inf
 
     # Connect parameter keys to walker position values
@@ -192,26 +192,22 @@ def lnprob(x):
 
     # number of samples drawn from a Gaussian
     Z = 500
-    gauss_m_D = np.random.normal(loc=pars['mu_m_D'], scale=pars['sig_m_D'], size=Z)
-    gauss_b_D = np.random.normal(loc=pars['mu_b_D'], scale=pars['sig_b_D'], size=Z)
-    gauss_m_ND = np.random.normal(loc=pars['mu_m_ND'], scale=pars['sig_m_ND'], size=Z)
-    gauss_b_ND = np.random.normal(loc=pars['mu_b_ND'], scale=pars['sig_b_ND'], size=Z)
-    #plt.hist(gauss_m_D)
-    #plt.show()
 
-    L = 0
-    for i in data:
-        Li_D = 1
-        Li_ND = 1
-
-        for j in g_selected_abundances:
-            err_term = i['e_'+j]**2 + pars[f'sig_{j}_D']**2            
-            Li_D *= np.sum(   (1./np.sqrt(2*np.pi*err_term)) * np.exp( -((i[j] - (gauss_m_D*g_tc[j] + gauss_b_D))**2)/(2*err_term) )   )
-
-            err_term = i['e_'+j]**2 + pars[f'sig_{j}_ND']**2
-            Li_ND *= np.sum(   (1./np.sqrt(2*np.pi*err_term)) * np.exp( -((i[j] - (gauss_m_ND*g_tc[j] + gauss_b_ND))**2)/(2*err_term) )   )
-        
-        L += np.log(pars['f']*Li_D + (1-pars['f'])*Li_ND)
+    gauss = np.empty((len(g_selected_abundances), 2, 2, Z))
+    exponents = np.empty((len(data), len(g_selected_abundances), 2, Z))
+    err_term = np.empty(exponents.shape[:3])
+    for i, depletion in enumerate(('D', 'ND')):
+        for j, param in enumerate(('m', 'b')):
+            gauss[:, j, i] = np.random.normal(loc=pars[f'mu_{param}_{depletion}'], scale=pars[f'sig_{param}_{depletion}'], size=Z)
+        for j, abundance in enumerate(g_selected_abundances):
+            err_term[:, j, i] = data[f'e_{abundance}']**2+pars[f'sig_{abundance}_{depletion}']**2
+            gauss[j, 0, i] *= g_tc[abundance]
+    err_term *= 2
+    gauss = np.sum(gauss, axis=1)
+    for i, abundance in enumerate(g_selected_abundances):
+       exponents[:, i] = -(data[abundance][:, np.newaxis, np.newaxis] - gauss[np.newaxis, i])**2/err_term[:, i, :, np.newaxis]
+    L = np.prod(np.sum(np.exp(exponents), axis=3)/np.sqrt(np.pi*err_term), axis=1)
+    L = np.sum(np.log(pars['f']*L[:, 0] + (1-pars['f'])*L[:, 1]), axis=0)
 
 
     print('likelihood took: ', time.time()-t0)
