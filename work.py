@@ -49,7 +49,7 @@ def mcmc_fit(run_id, niter, nwalkers, state=False, testing=False):
     global data, g_tc, p0
 
     # Load data and abundance list with condensation temperatures
-    data = Table.read('test_data.fits')
+    data_table = Table.read('test_data.fits')
     
     tc_values = Table.read('Tc_values.txt', format='ascii')
     # create dictionary abundance->Tc for likelihood function
@@ -121,6 +121,10 @@ def mcmc_fit(run_id, niter, nwalkers, state=False, testing=False):
     selected_abun = ['sig_'+x+'_D' for x in g_selected_abundances] + ['sig_'+x+'_ND' for x in g_selected_abundances]     
     g_prior_keys.extend(selected_abun) #prirs.keys()
 
+    data = np.empty((len(data_table), 2*len(g_selected_abundances)))
+    for i, abundance in enumerate(g_selected_abundances):
+        data[:, 2*i] = data_table[abundance]
+        data[:, 2*i+1] = data_table[f'e_{abundance}']**2
 
     ndim = len(g_prior_keys)
     print("Number of model parameters: ", ndim)
@@ -199,13 +203,13 @@ def lnprob(x):
     for i, depletion in enumerate(('D', 'ND')):
         for j, param in enumerate(('m', 'b')):
             gauss[:, j, i] = np.random.normal(loc=pars[f'mu_{param}_{depletion}'], scale=pars[f'sig_{param}_{depletion}'], size=Z)
+        err_term[..., i] = data[:, 1::2]
         for j, abundance in enumerate(g_selected_abundances):
-            err_term[:, j, i] = data[f'e_{abundance}']**2+pars[f'sig_{abundance}_{depletion}']**2
+            err_term[:, j, i] += pars[f'sig_{abundance}_{depletion}']**2
             gauss[j, 0, i] *= g_tc[abundance]
     err_term *= 2
     gauss = np.sum(gauss, axis=1)
-    for i, abundance in enumerate(g_selected_abundances):
-       exponents[:, i] = -(data[abundance][:, np.newaxis, np.newaxis] - gauss[np.newaxis, i])**2/err_term[:, i, :, np.newaxis]
+    exponents = -(data[:, ::2, np.newaxis, np.newaxis] - gauss[np.newaxis, :])**2/err_term[..., np.newaxis]
     L = np.prod(np.sum(np.exp(exponents), axis=3)/np.sqrt(np.pi*err_term), axis=1)
     L = np.sum(np.log(pars['f']*L[:, 0] + (1-pars['f'])*L[:, 1]), axis=0)
 
