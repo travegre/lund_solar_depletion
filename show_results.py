@@ -35,11 +35,33 @@ KPCTOM = 3.085677581*(10**19)
 
 
 def main():
-    run_id = 'test4'
-    walkers_corner(run_id, 64)
+    run_id = 'test31'
+    walkers_corner(run_id, 256)
     
     
 def walkers_corner(run_id, nwalkers):
+
+    
+    if False:
+        data = Table.read('APOGEE_Nibauer_selection.fits')
+        g_selected_abundances = ['Si_fe', 'Mg_fe', 'Ni_fe', 'Ca_fe', 'Al_fe']
+    
+        # Clean data of nan values for abundances
+        mask = data[g_selected_abundances[0]] > -9999
+        for i in g_selected_abundances:
+            mask = mask & (~np.isnan(data[i]))
+        data = data[mask]
+
+        fig, axes = plt.subplots(figsize=(20,4), dpi=100, nrows=1, ncols=len(g_selected_abundances))
+        for i in range(len(g_selected_abundances)):
+            ax = axes[i]
+            ax.scatter(data['fe_h'], data['e_'+g_selected_abundances[i]], s=1, color='black', edgecolor='none', alpha=0.9)
+            ax.set_xlabel('[Fe/H]')
+            ax.set_ylabel('['+g_selected_abundances[i]+']')
+            ax.set_ylim([-0.3, 0.3])
+        plt.tight_layout()
+        plt.show()
+
         
     samples_all = pd.read_csv('%s/chain.mcmc' % (run_id), '\s+', header=0)
     labels = list(samples_all.columns)[1:-1]
@@ -61,15 +83,20 @@ def walkers_corner(run_id, nwalkers):
 
     burn_cut_up = -1
     lnprob_lim_high = np.inf
+    lnprob_lim_low = 250500
 
-    burn_cut = -50
+    burn_cut = -5000
 
-    masked_walkers_converging = np.array([samples_all[i::nwalkers][burn_cut:burn_cut_up, -1] for i in range(nwalkers)]).flatten()     
+   
 
     samples_by_walkers = []
 
     for i in range(nwalkers):
-        samples_by_walkers.append(samples[i::nwalkers][burn_cut:burn_cut_up])
+        wmin = min(samples_all[i::nwalkers][burn_cut:burn_cut_up, -1])
+        wmax = max(samples_all[i::nwalkers][burn_cut:burn_cut_up, -1])
+
+        if (wmin > lnprob_lim_low) & (wmax < lnprob_lim_high):
+            samples_by_walkers.append(samples[i::nwalkers][burn_cut:burn_cut_up])
 
       
     samples = np.concatenate(np.transpose(np.array(samples_by_walkers), (1,0,2)))  
@@ -88,6 +115,7 @@ def walkers_corner(run_id, nwalkers):
 
     for x in zip(labels, percentiles_posterior):
         mcmc_results[x[0]] = x[1]
+        #print('%s & %.2f \pm^{%.2f}_{%.2f}' % (x[0], x[1][0], x[1][1], x[1][2]))
         print(x[0], x[1])
         mcmc_forfile.extend(x[1])     
 
@@ -147,8 +175,8 @@ def walkers_corner(run_id, nwalkers):
     new_samples = []
     new_averages = []
     for lab in printed_labels:
-        new_samples.append(samples[:, printed_labels.index(lab)])
-        new_averages.append(averages[printed_labels.index(lab)])
+        new_samples.append(samples[:, printed_labels.index(lab)+9])
+        new_averages.append(averages[printed_labels.index(lab)+9])
     new_samples = np.array(new_samples).T
     new_averages = np.array(new_averages)
     

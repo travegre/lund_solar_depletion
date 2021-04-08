@@ -35,6 +35,23 @@ KPCTOM = 3.085677581*(10**19)
 
 
 def main():
+
+    data = Table.read('APOGEE_Nibauer_outlier.fits')
+    data['Ni_fe'] = data['NI_FE']
+    data['e_Ni_fe'] = data['NI_FE_ERR']
+    data['Mg_fe'] = data['MG_FE']
+    data['e_Mg_fe'] = data['MG_FE_ERR']
+    data['Si_fe'] = data['SI_FE']
+    data['e_Si_fe'] = data['SI_FE_ERR']
+    data['Ca_fe'] = data['CA_FE']
+    data['e_Ca_fe'] = data['CA_FE_ERR']
+    data['Al_fe'] = data['AL_FE']
+    data['e_Al_fe'] = data['AL_FE_ERR']
+    data['fe_h'] = data['FE_H']
+    data['e_fe_h'] = data['FE_H_ERR']
+    data['fe_h', 'e_fe_h', 'Ni_fe', 'e_Ni_fe', 'Mg_fe', 'e_Mg_fe', 'Si_fe', 'e_Si_fe', 'Ca_fe', 'e_Ca_fe', 'Al_fe', 'e_Al_fe'].write('APOGEE_Nibauer_selection_outliers_removed.fits', overwrite=True)
+
+    return
     run_id = 'test5'
     
     if not os.path.exists(run_id): 
